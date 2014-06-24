@@ -20,7 +20,7 @@ class ArtworkMedia(ndb.Model):
     def size_in_kb(self):
         return self.size * 1000
 
-    def get_url(self):
+    def get_url(self, version='thumb'):
         from merkabah import is_appspot, get_domain
         import settings
 
@@ -30,7 +30,13 @@ class ArtworkMedia(ndb.Model):
             domain = get_domain()
 
         bucket = settings.DEFAULT_GS_BUCKET_NAME
-        path = self.gcs_filename
+
+        if version == 'thumb':
+            path = self.gcs_thumbnail_filename
+        if version == 'sized':
+            path = self.gcs_sized_filename
+        if version == 'full':
+            path = self.gcs_filename
 
         if not is_appspot():
             bucket = "_ah/gcs/%s" % bucket
