@@ -43,8 +43,6 @@ class ArtworkPlugin(object):
 
         return TemplateResponse('admin/plugin/index.html', context)
 
-
-        
     def process_create(self, request, context, *args, **kwargs):
         """
         Create a piece of artwork
@@ -61,7 +59,7 @@ class ArtworkPlugin(object):
                 art = api.artwork.create_artwork(form_data, operator=None) #TODO: Add operator
                 return HttpResponseRedirect(urlresolvers.reverse('admin_plugin_action', args=(context['plugin_slug'], 'art')))
 
-        return FormResponse(form, id='create_form', title="Create", target_url='/madmin/plugin/artwork/create/', target_action='create')
+        return FormResponse(form, id='create_form', title="Create", target_url='/madmin/plugin/artwork/create/', target_action='create', template='plugins/artwork/admin/artwork_form.html')
 
     def process_edit(self, request, context, *args, **kwargs):
         """
