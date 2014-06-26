@@ -4,16 +4,15 @@ Artwork Plugin
 
 from plugins.artwork.internal import api
 from merkabah.core.controllers import TemplateResponse
-from merkabah.core import datatable as merkabah_datatable
 from django.core import urlresolvers
 
 from settings import DEFAULT_GS_BUCKET_NAME
-from forms import ImageUploadForm, ArtworkSeriesForm
+from forms import ImageUploadForm, ArtworkSeriesForm, ArtworkForm
 from merkabah.core.controllers import FormResponse
 from django.http import HttpResponseRedirect
 import logging
 
-from datatables import ArtworkSeriesGrid, ArtworkImageGrid
+from datatables import ArtworkGrid, ArtworkSeriesGrid, ArtworkImageGrid
 
 
 class ArtworkPlugin(object):
@@ -34,13 +33,83 @@ class ArtworkPlugin(object):
         return TemplateResponse('admin/plugin/index.html', context)
 
     # Artwork - Not started
+    def process_art(self, request, context, *args, **kwargs):
+        """
+        List of Artwork
+        """
+
+        entities = api.artwork.get_artwork()
+        context['grid'] = ArtworkGrid(entities, request, context)
+
+        return TemplateResponse('admin/plugin/index.html', context)
+
+
+        
     def process_create(self, request, context, *args, **kwargs):
         """
         Create a piece of artwork
         """
+    
+        form = ArtworkForm()
 
-        context['form'] = 'main'
-        return TemplateResponse(self, 'admin/plugin/form.html', context)
+        context['form'] = form
+
+        if request.POST:
+            context['form'] = ArtworkForm(request.POST)
+            if context['form'].is_valid():
+                form_data = context['form'].cleaned_data
+                art = api.artwork.create_artwork(form_data, operator=None) #TODO: Add operator
+                return HttpResponseRedirect(urlresolvers.reverse('admin_plugin_action', args=(context['plugin_slug'], 'art')))
+
+        return FormResponse(form, id='create_form', title="Create", target_url='/madmin/plugin/artwork/create/', target_action='create')
+
+    def process_edit(self, request, context, *args, **kwargs):
+        """
+        Handler for editing a series
+        """
+        artwork_keystr = request.REQUEST['artwork_key']
+
+        if not artwork_keystr:
+            raise RuntimeError('No argument artwork_key provided.')
+
+        artwork_key = api.artwork.get_artwork_key_by_keystr(artwork_keystr)
+        artwork = artwork_key.get() # TODO: Make into api method
+
+        initial_data = {
+            'slug': artwork.slug,
+            'title': artwork.title,
+            'content': artwork.content,
+            'height': artwork.height,
+            'width': artwork.width,
+            'year': artwork.year,
+            'price': artwork.price,
+            'sale': artwork.sale            
+        }
+        
+        #populate selects...
+        initial_data['series'] = [series_key.urlsafe() for series_key in artwork.series if series_key] or ''
+        initial_data['attached_media'] = [image_key.urlsafe() for image_key in artwork.attached_media if image_key] or ''
+        
+        initial_data['primary_media_image'] = ''
+        if artwork.primary_media_image:
+            initial_data['primary_media_image'] = artwork.primary_media_image.urlsafe()
+
+        # End Initial Data Setup
+
+        form = ArtworkForm(initial=initial_data)
+
+        context['form'] = form
+
+        if request.POST:
+            context['form'] = ArtworkForm(request.POST)
+            if context['form'].is_valid():
+                form_data = context['form'].cleaned_data
+                series = api.artwork.edit_artwork(artwork_key, form_data, operator=None) #TODO: Add operator
+                return HttpResponseRedirect(urlresolvers.reverse('admin_plugin_action', args=(context['plugin_slug'], 'art')))
+
+        target_url = "%s?artwork_key=%s" % (urlresolvers.reverse('admin_plugin_action', args=(context['plugin_slug'], 'edit')), artwork_key.urlsafe())
+        return FormResponse(form, id='artwork_edit_form', title="Edit", target_url=target_url, target_action='edit')
+
 
     # Artwork Images
     def process_images(self, request, context, *args, **kwargs):
@@ -177,35 +246,6 @@ class ArtworkPlugin(object):
         api.series.delete_series(series_key, operator=None)
 
         return HttpResponseRedirect(urlresolvers.reverse('admin_plugin_action', args=(context['plugin_slug'], 'series')))
-
-
-
-class ArtworkActionColumn(merkabah_datatable.DatatableColumn):
-    def render_content(self, obj):
-        link = urlresolvers.reverse('merkabah_admin_blog_post_edit', args=(obj.key.urlsafe(),))
-        output = '<a href="%s" class="button">Edit</a>' % link
-
-        link = obj.get_permalink()
-        output += '<a href="%s" class="button">View</a>' % link
-
-        return output
-
-
-class BlogCategoryActionColumn(merkabah_datatable.DatatableColumn):
-    def render_content(self, obj):
-        link = urlresolvers.reverse('merkabah_admin_blog_category_edit', args=(obj.key.urlsafe(),))
-        return '<a href="%s" class="button">Edit</a>' % link
-
-
-class ArtworkGrid(merkabah_datatable.Datatable):
-    # Column Definitions
-    title = merkabah_datatable.DatatableColumn()
-    slug = merkabah_datatable.DatatableColumn()
-    created_date = merkabah_datatable.DatatableColumn()
-    published_date = merkabah_datatable.DatatableColumn()
-    actions = ArtworkActionColumn()
-    column_order = ['title' , 'slug', 'published_date', 'created_date', 'actions']
-
 
 
 # Register Plugin

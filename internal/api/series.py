@@ -1,6 +1,6 @@
 # Internal API Methods for Series
 from google.appengine.ext import ndb
-from gallery.models import ArtworkSeries
+from plugins.artwork.internal.models import ArtworkSeries
 
 def get_series_key_by_keystr(keystr):
     err = 'Keystrings must be an instance of base string, recieved: %s' % keystr

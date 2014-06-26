@@ -7,6 +7,7 @@ class ArtworkSeries(ndb.Model):
     showcase = ndb.BooleanProperty(default=False)
     year = ndb.IntegerProperty()
 
+
 class ArtworkMedia(ndb.Model):
     filename = ndb.StringProperty()
     blob_key = ndb.BlobKeyProperty()
@@ -19,6 +20,15 @@ class ArtworkMedia(ndb.Model):
     @property
     def size_in_kb(self):
         return self.size * 1000
+    
+    def get_thumbnail_url(self):
+        return self.get_url('thumb')
+
+    def get_sized_url(self):
+        return self.get_url('sized')
+
+    def get_full_url(self):
+        return self.get_url('full')
 
     def get_url(self, version='thumb'):
         from merkabah import is_appspot, get_domain

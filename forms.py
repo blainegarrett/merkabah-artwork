@@ -1,8 +1,7 @@
 from merkabah.core import forms as merkabah_forms
 from django import forms
 
-from .internal import models as blog_models
-
+from .internal import api
 
 class ImageUploadForm(merkabah_forms.MerkabahBaseForm):
     """
@@ -13,17 +12,47 @@ class ImageUploadForm(merkabah_forms.MerkabahBaseForm):
     the_file = forms.FileField()
 
 
-class BlogPostForm(merkabah_forms.MerkabahBaseForm):
+class ArtworkForm(merkabah_forms.MerkabahBaseForm):
     slug = forms.CharField(label='Slug', max_length=100, required=True, widget=forms.TextInput(attrs={'placeholder': 'Slug'}))
     title = forms.CharField(label='Title', max_length=100, required=True, widget=forms.TextInput(attrs={'placeholder': 'Title'}))
-    content = forms.CharField(label='Content', required=True, widget=forms.Textarea(attrs={'placeholder': 'Content', 'class': 'ckeditor'}))
-    publish = forms.BooleanField(required=False)
 
-    categories = forms.MultipleChoiceField(required=False, choices=[])
-    primary_media_image = forms.ChoiceField(required=False)
+    content = forms.CharField(label='Content', required=False, widget=forms.Textarea(attrs={'placeholder': 'Content', 'class': 'ckeditor'}))
+    
+
+    height = forms.IntegerField(label='Height', required=False, widget=forms.TextInput(attrs={'placeholder': 'Height'}))
+    width = forms.IntegerField(label='Width', required=False, widget=forms.TextInput(attrs={'placeholder': 'Width'}))
+    year = forms.IntegerField(label='Year', required=False, widget=forms.TextInput(attrs={'placeholder': 'Year'}))
+    price = forms.IntegerField(label='Price', required=False, widget=forms.TextInput(attrs={'placeholder': 'Price'}))
+    sale = forms.BooleanField(required=False)
+
+
+    series = forms.MultipleChoiceField(label='Series', required=False, choices=[])
+    attached_media = forms.MultipleChoiceField(label='Attached Media', required=False, choices=[])
+    primary_media_image = forms.ChoiceField(label='Primary Image', required=False, choices=[])
 
     def __init__(self, *args, **kwargs):
-        super(BlogPostForm, self).__init__(*args, **kwargs)
+        super(ArtworkForm, self).__init__(*args, **kwargs)
+        
+        # Populate series
+        series_choices = [('', '--No Series--')]
+        series_entities = api.series.get_series_list() # TODO: Convert to api method
+        for series_entity in series_entities:
+            series_choices.append((series_entity.key.urlsafe(), series_entity.title))
+
+        self.fields['series'].choices = series_choices
+
+        # Populate images
+        media_choices = [('', '--No Images --')]
+        image_entities = api.images.get_images() # TODO: Convert to api method
+        for image_entity in image_entities:
+            media_choices.append((image_entity.key.urlsafe(), image_entity.filename))
+
+        self.fields['attached_media'].choices = media_choices
+        
+        # Primary Image
+        self.fields['primary_media_image'].choices = media_choices
+
+        return
 
         # Primary Image
         media_choices = [('', 'None Selected')]

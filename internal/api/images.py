@@ -1,11 +1,19 @@
 from merkabah.core.files.api.cloudstorage import Cloudstorage
 #from merkabah.core.oldfiles import rescale
-from gallery.models import ArtworkMedia
+from plugins.artwork.internal.models import ArtworkMedia
 from django.core import urlresolvers
 import logging
 from google.appengine.api import images
 
+from google.appengine.ext import ndb
 
+def get_image_key_by_keystr(keystr):
+    err = 'Keystrings must be an instance of base string, recieved: %s' % keystr
+
+    if not keystr or not isinstance(keystr, basestring):
+        raise RuntimeError(err)
+
+    return ndb.Key(urlsafe=keystr)
 
 def get_images():
     """
