@@ -1,7 +1,7 @@
 """
 Artwork Plugin
 """
-
+import json
 from plugins.artwork.internal import api
 from merkabah.core.controllers import TemplateResponse
 from django.core import urlresolvers
@@ -9,11 +9,11 @@ from django.core import urlresolvers
 from settings import DEFAULT_GS_BUCKET_NAME
 from forms import ImageUploadForm, ArtworkSeriesForm, ArtworkForm
 from merkabah.core.controllers import FormResponse
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 import logging
 
 from datatables import ArtworkGrid, ArtworkSeriesGrid, ArtworkImageGrid
-
+from merkabah import get_domain
 
 class ArtworkPlugin(object):
     """
@@ -22,7 +22,7 @@ class ArtworkPlugin(object):
     name = 'Artwork'
     entity_nice_name = 'art'
     entity_plural_name = 'art'
-
+        
     def process_index(self, request, context, *args, **kwargs):
         """
         Driver switchboard logic
@@ -47,8 +47,12 @@ class ArtworkPlugin(object):
         """
         Create a piece of artwork
         """
-    
+        
+
+
         form = ArtworkForm()
+
+        setattr(form, 'domain_root', request.META['HTTP_HOST'])
 
         context['form'] = form
 
@@ -95,6 +99,13 @@ class ArtworkPlugin(object):
         # End Initial Data Setup
 
         form = ArtworkForm(initial=initial_data)
+        
+        setattr(form, 'attached_media_entities', [image_key.get() for image_key in artwork.attached_media if image_key] or [])
+
+        if artwork.primary_media_image:
+            setattr(form, 'primary_media_image_entity', artwork.primary_media_image.get())
+
+        setattr(form, 'domain_root', request.META['HTTP_HOST'])
 
         context['form'] = form
 
@@ -106,7 +117,7 @@ class ArtworkPlugin(object):
                 return HttpResponseRedirect(urlresolvers.reverse('admin_plugin_action', args=(context['plugin_slug'], 'art')))
 
         target_url = "%s?artwork_key=%s" % (urlresolvers.reverse('admin_plugin_action', args=(context['plugin_slug'], 'edit')), artwork_key.urlsafe())
-        return FormResponse(form, id='artwork_edit_form', title="Edit", target_url=target_url, target_action='edit')
+        return FormResponse(form, id='artwork_edit_form', title="Edit", target_url=target_url, target_action='edit', template='plugins/artwork/admin/artwork_form.html')
 
 
     # Artwork Images
@@ -119,6 +130,16 @@ class ArtworkPlugin(object):
         context['grid'] = ArtworkImageGrid(entities, request, context)
 
         return TemplateResponse('admin/plugin/index.html', context)
+
+    def process_image_upload_json(self, request, context, *args, **kwargs):
+        kwargs['give_me_json_back'] = True # Hacky but will have to do until we have a betterway
+
+        return self.process_images_create(request, context, *args, **kwargs)
+
+    def process_get_upload_url(self, request, context, *args, **kwargs):
+        upload_url = api.create_upload_url(request.POST['callback'])
+        response_dict = {'url': upload_url}
+        return HttpResponse(json.dumps(response_dict))
 
     def process_images_create(self, request, context, *args, **kwargs):
         """
@@ -164,7 +185,18 @@ class ArtworkPlugin(object):
             # Finally delete the tmp file
             data =  fs.delete(gs_object_name.replace('/gs', ''))
 
-            return HttpResponseRedirect(urlresolvers.reverse('admin_plugin_action', args=(context['plugin_slug'], 'images')))
+            if not kwargs.get('give_me_json_back'):
+                return HttpResponseRedirect(urlresolvers.reverse('admin_plugin_action', args=(context['plugin_slug'], 'images')))
+            
+            # Else... we're hacky emulating an upload rest endpoint - return json info about the image
+            response_dict = {
+                'cool': True,
+                'keystr': media.key.urlsafe(),
+                'filename': media.filename,
+                'thumbnail_url': media.get_thumbnail_url()
+            }
+
+            return HttpResponse(json.dumps(response_dict))
 
         upload_url = fs.create_upload_url('/madmin/plugin/artwork/images_create/')
 

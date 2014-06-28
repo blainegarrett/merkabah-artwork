@@ -17,10 +17,9 @@ class ArtworkForm(merkabah_forms.MerkabahBaseForm):
     title = forms.CharField(label='Title', max_length=100, required=True, widget=forms.TextInput(attrs={'placeholder': 'Title'}))
 
     content = forms.CharField(label='Content', required=False, widget=forms.Textarea(attrs={'placeholder': 'Content', 'class': 'ckeditor'}))
-    
 
-    height = forms.IntegerField(label='Height', required=False, widget=forms.TextInput(attrs={'placeholder': 'Height'}))
-    width = forms.IntegerField(label='Width', required=False, widget=forms.TextInput(attrs={'placeholder': 'Width'}))
+    height = forms.IntegerField(label='Height', required=False, widget=forms.TextInput(attrs={'placeholder': 'Height (inches)'}))
+    width = forms.IntegerField(label='Width', required=False, widget=forms.TextInput(attrs={'placeholder': 'Width (inches)'}))
     year = forms.IntegerField(label='Year', required=False, widget=forms.TextInput(attrs={'placeholder': 'Year'}))
     price = forms.IntegerField(label='Price', required=False, widget=forms.TextInput(attrs={'placeholder': 'Price'}))
     sale = forms.BooleanField(required=False)
@@ -34,7 +33,7 @@ class ArtworkForm(merkabah_forms.MerkabahBaseForm):
         super(ArtworkForm, self).__init__(*args, **kwargs)
         
         # Populate series
-        series_choices = [('', '--No Series--')]
+        series_choices = []
         series_entities = api.series.get_series_list() # TODO: Convert to api method
         for series_entity in series_entities:
             series_choices.append((series_entity.key.urlsafe(), series_entity.title))
