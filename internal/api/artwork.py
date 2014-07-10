@@ -16,7 +16,7 @@ def get_artwork_key_by_keystr(keystr):
     
 def get_artwork_key(slug):
     """
-    Create a db.Key given a seies slug
+    Create an ndb.Key given an artwork slug
     """
 
     # TODO: Get Kind name off plugin def
