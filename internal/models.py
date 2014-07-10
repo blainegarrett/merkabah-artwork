@@ -1,4 +1,5 @@
 from google.appengine.ext import ndb
+from ..constants import ARTWORKSERIES_KIND, ARTWORKMEDIA_KIND, ARTWORK_KIND
 
 class ArtworkSeries(ndb.Model):
     slug = ndb.StringProperty()
@@ -7,6 +8,9 @@ class ArtworkSeries(ndb.Model):
     showcase = ndb.BooleanProperty(default=False)
     year = ndb.IntegerProperty()
 
+    @classmethod
+    def _get_kind(cls):
+        return ARTWORKSERIES_KIND # This can be overriden in the plugin.config
 
 class ArtworkMedia(ndb.Model):
     filename = ndb.StringProperty()
@@ -16,6 +20,10 @@ class ArtworkMedia(ndb.Model):
     gcs_sized_filename = ndb.StringProperty()
     content_type = ndb.StringProperty()
     size = ndb.IntegerProperty()
+
+    @classmethod
+    def _get_kind(cls):
+        return ARTWORKMEDIA_KIND # This can be overriden in the plugin.config
 
     @property
     def size_in_kb(self):
@@ -53,9 +61,6 @@ class ArtworkMedia(ndb.Model):
         url = 'http://%s/%s/%s' % (domain, bucket, path)
         return url
 
-    #@classmethod
-    #def _get_kind(cls):
-    #    return BLOGMEDIA_KIND # This can be overriden in the plugin.config
 
 class Artwork(ndb.Model):
     title = ndb.StringProperty()
@@ -74,6 +79,10 @@ class Artwork(ndb.Model):
     # Some quicky versions of 
     sale = ndb.BooleanProperty(default=False)
     price = ndb.IntegerProperty(default=0)
+
+    @classmethod
+    def _get_kind(cls):
+        return ARTWORK_KIND # This can be overriden in the plugin.config
 
     def get_primary_image_url(self):
         return ArtworkMedia.get(self.primary_media_image).filename

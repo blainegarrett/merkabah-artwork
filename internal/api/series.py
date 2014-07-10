@@ -1,28 +1,37 @@
 # Internal API Methods for Series
 from google.appengine.ext import ndb
 from plugins.artwork.internal.models import ArtworkSeries
+from plugins.artwork.constants import ARTWORKSERIES_KIND
+
 
 def get_series_key_by_keystr(keystr):
-    err = 'Keystrings must be an instance of base string, recieved: %s' % keystr
+    """
+    Given a urlsafe version of an Album key, get the actual key
+    """
+
+    attr_err = 'Keystrings must be an instance of base string, recieved: %s' % keystr
+    kind_err = 'Expected urlsafe keystr for kind %s but received keystr for kind %s instead.'
 
     if not keystr or not isinstance(keystr, basestring):
-        raise RuntimeError(err)
+        raise RuntimeError(attr_err)
 
-    return ndb.Key(urlsafe=keystr)
-    
+    key = ndb.Key(urlsafe=keystr)
+    if not key.kind() == ARTWORKSERIES_KIND:
+        raise RuntimeError(kind_err % (ARTWORKSERIES_KIND, key.kind()))
+
+    return key
+
+
 def get_series_key(slug):
     """
     Create a db.Key given a seies slug
     """
-
-    # TODO: Get Kind name off plugin def
-
     err = 'Series slug must be defined and of of type basestring'
 
     if not slug or not isinstance(slug, basestring):
         raise RuntimeError(err)
 
-    return ndb.Key('ArtworkSeries', slug)
+    return ndb.Key(ARTWORKSERIES_KIND, slug)
 
 
 def get_series_by_slug(slug):

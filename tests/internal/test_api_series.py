@@ -6,8 +6,9 @@ from mock import Mock, patch
 
 from google.appengine.ext import ndb
 
-from plugins.artwork.tests.internal.test_api import ArtworkApiCaseBase
-from plugins.artwork.internal.api import series as api
+from ...tests.internal.test_api import ArtworkApiCaseBase
+from ...internal.api import series as api
+from ...constants import ARTWORKSERIES_KIND, PLUGIN_SLUG
 
 
 class SeriesApiCaseBase(ArtworkApiCaseBase):
@@ -26,7 +27,7 @@ class GetSeriesKeyTests(SeriesApiCaseBase):
         result_key = api.get_series_key(test_slug)
 
         self.assertTrue(isinstance(result_key, ndb.Key))
-        self.assertEqual(result_key.kind(), 'ArtworkSeries')
+        self.assertEqual(result_key.kind(), ARTWORKSERIES_KIND)
 
     def test_errors(self):
         """
@@ -40,24 +41,35 @@ class GetSeriesKeyTests(SeriesApiCaseBase):
 
 class GetSeriesKeyByKeyStrTests(SeriesApiCaseBase):
     """
+    Tests surrounding getting the series key via urlsafe keystr
     """
 
-    @patch('plugins.artwork.internal.api.series.ndb')
+    @patch('plugins.%s.internal.api.series.ndb' % PLUGIN_SLUG)
     def test_base(self, m_ndb):
         """
         Ensure our keystr helper wrapper calls the ndb.Key constructor correctly
         """
 
         # Setup Mocks
-        m_key_init = Mock(name='mocked Key class', return_value='MockedKey')
+        m_key = Mock()
+        m_key.kind.return_value = ARTWORKSERIES_KIND
+        m_key_init = Mock(name='mocked Key class', return_value=m_key)
         m_ndb.Key = m_key_init
 
         # Run code under test
         result = api.get_series_key_by_keystr('some_url_safe_keystr')
 
         # Check mocks
-        self.assertEqual(result, 'MockedKey')
+        self.assertEqual(result, m_key)
         m_key_init.assert_called_once_with(urlsafe='some_url_safe_keystr')
+
+    def test_invalid_kind(self):
+        """
+        Ensure urlsafe keys from other Kinds do not work
+        """
+
+        bad_keystr = ndb.Key('SomeOtherKind', 612).urlsafe()
+        self.assertRaises(RuntimeError, api.get_series_key_by_keystr, bad_keystr)
 
     def test_errors(self):
         """
@@ -74,7 +86,7 @@ class GetSeriesBySlugTests(SeriesApiCaseBase):
     Tests surrounding getting series slug
     """
 
-    @patch('plugins.artwork.internal.api.series.get_series_key')
+    @patch('plugins.%s.internal.api.series.get_series_key' % PLUGIN_SLUG)
     def test_base(self, m_get_series_key):
         # Setup Mocks
         test_slug = 'test'
@@ -102,3 +114,18 @@ class GetSeriesBySlugTests(SeriesApiCaseBase):
         self.assertRaises(RuntimeError, api.get_series_by_slug, {})
         self.assertRaises(RuntimeError, api.get_series_by_slug, 612)
 
+
+class CreateSeriesTests(SeriesApiCaseBase):
+    pass
+
+
+class EditSeriesTests(SeriesApiCaseBase):
+    pass
+
+
+class DeleteSeriesTests(SeriesApiCaseBase):
+    pass
+
+
+class FetchSeriesListTests(SeriesApiCaseBase):
+    pass
