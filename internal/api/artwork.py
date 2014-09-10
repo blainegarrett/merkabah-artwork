@@ -83,7 +83,7 @@ def create_artwork(data, operator):
     primary_image_key = None
     primary_image_keystr = data.get('primary_media_image', '')
     if primary_image_keystr:
-        primary_image_key = images_api.get_image_key_by_keystr(keystr)
+        primary_image_key = images_api.get_image_key_by_keystr(primary_image_keystr)
     data['primary_media_image'] = primary_image_key
 
     entity = Artwork(key=key, **data)
@@ -92,6 +92,10 @@ def create_artwork(data, operator):
     return entity
 
 def edit_artwork(artwork_key, data, operator):
+    """
+    Edit some artwork
+    """
+
     artwork = artwork_key.get()
 
     if not artwork:
@@ -123,9 +127,10 @@ def edit_artwork(artwork_key, data, operator):
     primary_image_key = None
     primary_image_keystr = data.get('primary_media_image', '')
     if primary_image_keystr:
-        primary_image_key = images_api.get_image_key_by_keystr(keystr)
+        primary_image_key = images_api.get_image_key_by_keystr(primary_image_keystr)
     data['primary_media_image'] = primary_image_key
 
+    # Finally, update the entity
     for field, value in data.items():
         setattr(artwork, field, value)
 
